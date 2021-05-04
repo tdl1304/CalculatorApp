@@ -1,19 +1,22 @@
 <template>
-  <div id="app">
-    <Calculator />
+  <div id="calculator-component">
+    <calculator/>
   </div>
 </template>
 
 <script>
-import Calculator from "./components/Calculator.vue";
+import calculator from "./components/Calculator.vue";
 
 export default {
   name: "app",
   components: {
-    Calculator,
+    calculator,
   },
 };
 </script>
 
 <style>
+  body {
+    background-color: #191919;
+  }
 </style>

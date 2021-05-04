@@ -16,7 +16,7 @@ public class CalculatorController {
     static Logger logger = LoggerFactory.getLogger(CalculatorController.class.getName());
 
     @ResponseStatus(HttpStatus.OK)
-    @GetMapping("/calculate")
+    @PostMapping("/calculate")
     public double calculate(@RequestBody Regnestykke regnestykke) {
         logger.info("calculating "+ regnestykke.getRegnestykke());
         return calculate(regnestykke.getRegnestykke());
@@ -25,27 +25,31 @@ public class CalculatorController {
     // calculates + and - from a string only two numbers at the same time
     static double calculate(String s) {
         try {
-
             List<String> operators = Arrays.asList(s.trim().split("[0-9]"));
-            String[] operands = s.trim().split("[+/*-]");
-            if(operands.length > 2) throw new ResponseStatusException(HttpStatus.CONFLICT, "there should only be 2 numbers per operation");
-            operators = operators.stream().filter(e -> !e.equals("")).collect(Collectors.toList());
-            logger.info(Arrays.toString(operands));
-            logger.info(String.valueOf(operators));
-            double agregate = Integer.parseInt(operands[0]);
-            for (int i = 1; i < operands.length; i++) {
+            List<String> operands = Arrays.asList(s.trim().split("[+/*-]"));
+            operators = operators.stream().filter(e -> !(e.equals("") || e.equals("."))).collect(Collectors.toList());
+            double agregate = 0;
+            if(operators.get(0).equals("-") && operands.get(0).equals("")) {
+                operators.remove(0);
+                operands = operands.stream().filter(e -> !e.equals("")).collect(Collectors.toList());
+                agregate = Double.parseDouble("-"+operands.get(0));
+            } else {
+                agregate = Double.parseDouble(operands.get(0));
+            }
+            if(operands.size() > 2) throw new ResponseStatusException(HttpStatus.CONFLICT, "there should only be 2 numbers per operation");
+            for (int i = 1; i < operands.size(); i++) {
                 switch (operators.get(i-1)) {
                     case "+":
-                        agregate += Integer.parseInt(operands[i]);
+                        agregate += Double.parseDouble(operands.get(i));
                         break;
                     case "-":
-                        agregate -= Integer.parseInt(operands[i]);
+                        agregate -= Double.parseDouble(operands.get(i));
                         break;
                     case "*":
-                        agregate *= Integer.parseInt(operands[i]);
+                        agregate *= Double.parseDouble(operands.get(i));
                         break;
                     default:
-                        agregate /= Double.parseDouble(operands[i]);
+                        agregate /= Double.parseDouble(operands.get(i));
                         break;
                 }
             }

@@ -21,32 +21,36 @@
     <div @click="dot" class="btn">.</div>
     <div @click="equal" class="btn operator">=</div>
   </div>
+  <button style="padding:0.3em 1em; margin-top:1em;" @click="logs=['LOG']">Clear log</button>
   <div class="log">
     <div v-for="log in logs" :key="log">{{ log }}</div>
   </div>
 </template>
 
 <script>
+const API_ENDPOINT = "http://localhost:8081/api"
 export default {
   data() {
     return {
       lastOperatorClicked: "",
       logs: ["LOG"],
       previous: "",
-      current: "123",
-      operator: null,
+      current: "",
       operatorClicked: false,
     };
   },
   methods: {
     clear() {
+      this.previous = "";
       this.current = "";
     },
     sign() {
-      this.current =
-        this.current.charAt(0) === "-"
-          ? this.current.slice(1)
-          : `-${this.current}`;
+      if(this.current !== "") {
+        this.current =
+            this.current.charAt(0) === "-"
+                ? this.current.slice(1)
+                : `-${this.current}`;
+      }
     },
     percent() {
       this.current = `${parseFloat(this.current) / 100}`;
@@ -63,53 +67,58 @@ export default {
         this.append(".");
       }
     },
-    setPrevious() {
-      this.previous = this.current;
-      this.operatorClicked = true;
-    },
     divide() {
-      this.lastOperatorClicked = "÷";
-      this.operator = (a, b) => a / b;
-      this.setPrevious();
+      this.calculate("/")
     },
     times() {
-      this.lastOperatorClicked = "*";
-      this.operator = (a, b) => a * b;
-      this.setPrevious();
+      this.calculate("*")
     },
     minus() {
-      this.lastOperatorClicked = "-";
-      this.operator = (a, b) => a - b;
-      this.setPrevious();
+      this.calculate("-")
     },
     add() {
-      this.lastOperatorClicked = "+";
-      this.operator = (a, b) => a + b;
-      this.setPrevious();
+      this.calculate("+")
+    },
+    calculate(operator) {
+      if(!this.operatorClicked) {
+        if (this.previous !== "") {
+          this.getData(API_ENDPOINT + "/calculate", {regnestykke: `${this.previous}${this.current}`})
+              .then(data => data.json())
+              .then(data => {
+                this.logs.push(`${this.previous}${this.current} = ${data.toString()}`)
+                this.current = data.toString();
+                this.previous = data.toString() + operator;
+              })
+        }
+        this.previous = this.current + operator;
+        this.operatorClicked = true;
+      }
     },
     equal() {
-      let result = `${this.operator(
-        parseFloat(this.previous),
-        parseFloat(this.current)
-      )}`;
-      this.logs.push(
-        `${this.previous}${this.lastOperatorClicked}${
-          this.current
-        }${"="}${result}`
-      );
-      this.current = result;
-      this.previous = null;
+      if(this.previous !== "") {
+
+        this.getData(API_ENDPOINT + "/calculate", {regnestykke: `${this.previous}${this.current}`})
+            .then(data => data.json())
+            .then(data => {
+              this.logs.push(`${this.previous}${this.current} = ${data.toString()}`)
+              this.current = data.toString();
+              this.previous = "";
+            })
+      }
     },
-    async getData(url = "") {
-      const response = await fetch(url, {
-        method: "GET", // *GET, POST, PUT, DELETE, etc.
+    async getData(url = "", data) {
+      return await fetch(url, {
+        method: "POST", // *GET, POST, PUT, DELETE, etc.
         mode: "cors", // no-cors, *cors, same-origin
         cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
         credentials: "same-origin", // include, *same-origin, omit
         redirect: "follow", // manual, *follow, error
         referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url // body data type must match "Content-Type" header
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
       });
-      return response; // parses JSON response into native JavaScript objects
     },
   },
 };
